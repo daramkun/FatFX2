@@ -1,0 +1,230 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="HLSLcc">
+      <UniqueIdentifier>{e73d4a1f-fa33-48de-b767-181eacca6fd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HLSLcc\include">
+      <UniqueIdentifier>{e632283e-809f-4179-8aff-f982db37bd05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HLSLcc\src">
+      <UniqueIdentifier>{6fbb8405-1c53-4018-8b68-e8d824b7bfaf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HLSLcc\src\cbstring">
+      <UniqueIdentifier>{c82d1e94-f4d0-4758-b580-e37ff80fc359}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HLSLcc\src\internal_includes">
+      <UniqueIdentifier>{56490ad1-54ab-4e0c-878e-9e7fa5051119}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FatFXcpp">
+      <UniqueIdentifier>{d5987098-1aef-425f-be13-0d4ef6613b12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FatFXcpp\Headers">
+      <UniqueIdentifier>{b56481c3-7a89-45ce-b02d-101d225dd46e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FatFXcpp\Sources">
+      <UniqueIdentifier>{973db9c2-6791-43f1-9a53-8ab0eb3ef4f8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\ControlFlowGraph.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\ControlFlowGraphUtils.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\DataTypeAnalysis.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\Declaration.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\decode.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\HLSLcc.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\HLSLccToolkit.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\HLSLCrossCompilerContext.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\Instruction.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\LoopTransform.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\Operand.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\reflect.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\Shader.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\ShaderInfo.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toGLSL.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toGLSLDeclaration.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toGLSLInstruction.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toGLSLOperand.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toMetal.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toMetalDeclaration.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toMetalInstruction.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\toMetalOperand.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\UseDefineChains.cpp">
+      <Filter>HLSLcc\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\cbstring\bsafe.c">
+      <Filter>HLSLcc\src\cbstring</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\cbstring\bstraux.c">
+      <Filter>HLSLcc\src\cbstring</Filter>
+    </ClCompile>
+    <ClCompile Include="..\HLSLcc\src\cbstring\bstrlib.c">
+      <Filter>HLSLcc\src\cbstring</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Daramee.FatFX.Cpp\FatFX.c">
+      <Filter>FatFXcpp\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Daramee.FatFX.Cpp\FatFX.Cplusplus.cpp">
+      <Filter>FatFXcpp\Sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\HLSLcc\include\growing_array.h">
+      <Filter>HLSLcc\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\include\hlslcc.h">
+      <Filter>HLSLcc\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\include\hlslcc.hpp">
+      <Filter>HLSLcc\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\include\pstdint.h">
+      <Filter>HLSLcc\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\include\ShaderInfo.h">
+      <Filter>HLSLcc\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\cbstring\bsafe.h">
+      <Filter>HLSLcc\src\cbstring</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\cbstring\bstraux.h">
+      <Filter>HLSLcc\src\cbstring</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\cbstring\bstrlib.h">
+      <Filter>HLSLcc\src\cbstring</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\ControlFlowGraph.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\ControlFlowGraphUtils.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\DataTypeAnalysis.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\debug.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\Declaration.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\decode.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\HLSLccToolkit.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\HLSLCrossCompilerContext.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\Instruction.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\languages.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\LoopTransform.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\Operand.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\reflect.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\Shader.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\toGLSL.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\toGLSLOperand.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\tokens.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\toMetal.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\toMetalDeclaration.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\Translator.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\HLSLcc\src\internal_includes\UseDefineChains.h">
+      <Filter>HLSLcc\src\internal_includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Daramee.FatFX.Cpp\FatFX.h">
+      <Filter>FatFXcpp\Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="VertexShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
