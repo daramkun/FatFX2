@@ -6,6 +6,8 @@ namespace Daramee.FatFX
 {
 	public static class Language
 	{
+		public static readonly string NoLanguage_Input = "ISGN\0\0\0\0";
+		public static readonly string NoLanguage_Output = "OSGN\0\0\0\0";
 		public static readonly string HLSLstyleD3D9 = "HLSL09\0\0";
 		public static readonly string HLSLstyleD3D1X = "HLSL1X\0\0";
 		public static readonly string DXIL = "DXIL\0\0\0\0";

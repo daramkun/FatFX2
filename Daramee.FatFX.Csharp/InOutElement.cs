@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Daramee.FatFX
 {
 	[StructLayout ( LayoutKind.Sequential, CharSet = CharSet.Ansi )]
-	public struct InputElement
+	public struct InOutElement
 	{
 		[MarshalAs ( UnmanagedType.ByValTStr, SizeConst = 32 )]
 		public string Semantic;

@@ -3,464 +3,239 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if !defined ( NULL )
-#	define NULL												( void * ) 0
-#endif
+#include  "FatFX.Internal.h"
 
-struct _FFXSHADER
+struct _FFXBLOB
 {
-	FFXSHADERTYPE shaderType;
 	void * data;
 	size_t dataSize;
 };
 
-struct __LANGUAGE_NODE
+FFXBLOB * FFX_createBlob ( void * data, size_t size )
 {
-	FFXSHADER * shader;
-	struct __LANGUAGE_NODE * next;
+	FFXBLOB * blob = ( FFXBLOB* ) malloc ( sizeof ( FFXBLOB ) );
+	blob->data = malloc ( size );
+	blob->dataSize = size;
+	if ( data ) memcpy ( blob->data, data, size );
+	return blob;
+}
+
+FFXBLOB * FFX_createBlobByInOutElement ( FFXINOUTELEMENT * elements )
+{
+	size_t count = 0;
+	FFXINOUTELEMENT * temp = elements;
+	while ( temp->semantic [ 0 ] != '\0' )
+	{
+		++count;
+		++temp;
+	}
+	return FFX_createBlob ( elements, ( count + 1 ) * sizeof ( FFXINOUTELEMENT ) );
+}
+
+void FFX_destroyBlob ( FFXBLOB * blob )
+{
+	free ( blob->data );
+	free ( blob );
+}
+
+void * FFX_getDataPointer ( FFXBLOB * blob ) { return blob->data; }
+size_t FFX_getDataSize ( FFXBLOB * blob ) { return blob->dataSize; }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct _FFXCONTAINER
+{
+	__LINKEDLIST * linkedList;
 };
 
 struct _FFXLANGUAGECHUNK
 {
-	unsigned char chunkType;
-	struct __LANGUAGE_NODE * top;
-	FFXLANGUAGE language;
+	FFXLANGUAGETYPE language;
+	__LINKEDLIST * linkedList;
 };
 
-struct _FFXINPUTCHUNK
+struct _FFXINOUT
 {
-	unsigned char chunkType;
-	FFXINPUTELEMENT * elements;
+	FFXINOUTELEMENT * elements;
+	size_t elementCount;
 };
 
-struct __CONTAINER_NODE
+struct _FFXSHADER
 {
-	void * chunk;
-	struct __CONTAINER_NODE * next;
+	FFXSHADERTYPE shaderType;
+	FFXBLOB * blob;
 };
 
-struct _FFXCONTAINER
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void ___containerDelete ( void * data )
 {
-	struct __CONTAINER_NODE * top;
-};
+	FFXLANGUAGECHUNK * chunk = ( FFXLANGUAGECHUNK* ) data;
+	destroyLinkedList ( chunk->linkedList );
+	free ( data );
+}
 
 FFXCONTAINER* FFX_createContainer ()
 {
 	FFXCONTAINER * ret = ( FFXCONTAINER* ) malloc ( sizeof ( FFXCONTAINER ) );
-	ret->top = NULL;
-
+	ret->linkedList = createLinkedList ( ___containerDelete );
 	return ret;
 }
 
 void FFX_destroyContainer ( FFXCONTAINER * container )
 {
-	struct __CONTAINER_NODE * chunks = container->top, * tempChunk;
-	struct __LANGUAGE_NODE * shaders = NULL, * tempShader;
-
-	if ( container == NULL ) return;
-
-	while ( chunks != NULL )
-	{
-		switch ( ( ( unsigned char ) chunks->chunk ) )
-		{
-		case 0:		//< Language Chunk
-			{
-				shaders = ( ( FFXLANGUAGECHUNK* ) chunks->chunk )->top;
-				while ( shaders != NULL )
-				{
-					free ( shaders->shader->data );
-					free ( shaders->shader );
-
-					tempShader = shaders;
-					shaders = shaders->next;
-					free ( tempShader );
-				}
-			}
-			break;
-
-		case 1:		//< Input Elements Chunk
-			{
-				free ( ( ( FFXINPUTCHUNK* ) chunks->chunk )->elements );
-			}
-			break;
-		}
-
-		free ( chunks->chunk );
-
-		tempChunk = chunks;
-		chunks = chunks->next;
-		free ( tempChunk );
-	}
-
+	destroyLinkedList ( container->linkedList );
 	free ( container );
 }
 
-unsigned int FFX_getContainerChunkCount ( FFXCONTAINER * container )
+size_t FFX_getContainerChunkCount ( FFXCONTAINER * container ) { return getLinkedListSize ( container->linkedList ); }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool FFX_isContainedLanguage ( FFXCONTAINER * container, FFXLANGUAGETYPE language )
 {
-	struct __CONTAINER_NODE * chunks = container->top;
-	unsigned int count = 0;
-
-	while ( chunks != NULL )
+	size_t size = getLinkedListSize ( container->linkedList );
+	for ( unsigned i = 0; i < size; ++i )
 	{
-		++count;
-		chunks = chunks->next;
-	}
-
-	return count;
-}
-
-bool FFX_isContainedInputChunk ( FFXCONTAINER * container )
-{
-	struct __CONTAINER_NODE * chunks = container->top;
-
-	while ( chunks != NULL )
-	{
-		switch ( *( ( unsigned char* ) chunks->chunk ) )
-		{
-		case 0:		//< Language Chunk
-			break;
-
-		case 1:		//< Input Elements Chunk
+		FFXLANGUAGECHUNK * chunk = ( FFXLANGUAGECHUNK* ) getLinkedListData ( container->linkedList, i );
+		if ( strcmp ( chunk->language, language ) == 0 )
 			return true;
-		}
-
-		chunks = chunks->next;
 	}
-
 	return false;
 }
 
-FFXINPUTCHUNK* FFX_addInputChunk ( FFXCONTAINER * container, FFXINPUTELEMENT * elements )
+void ___languageDelete ( void * data )
 {
-	struct __CONTAINER_NODE * chunks = container->top, *cnode;
-	FFXINPUTCHUNK * chunk;
-	size_t count = 0;
-
-	if ( FFX_isContainedInputChunk ( container ) ) return NULL;
-
-	FFXINPUTELEMENT * temp = elements;
-	while ( temp != NULL )
-	{
-		++count;
-		++temp;
-		if ( temp->semantic [ 0 ] == '\0' ) break;
-	}
-
-	chunk = ( FFXINPUTCHUNK* ) malloc ( sizeof ( FFXINPUTCHUNK ) );
-	chunk->chunkType = 1;
-	chunk->elements = ( FFXINPUTELEMENT* ) malloc ( sizeof ( FFXINPUTELEMENT ) * count );
-	memcpy ( chunk->elements, elements, sizeof ( FFXINPUTELEMENT ) * count );
-
-	cnode = ( struct __CONTAINER_NODE* ) malloc ( sizeof ( struct __CONTAINER_NODE ) );
-	cnode->chunk = chunk;
-	cnode->next = NULL;
-
-	if ( chunks == NULL )
-	{
-		container->top = cnode;
-	}
-	else
-	{
-		while ( chunks->next != NULL )
-			chunks = chunks->next;
-		chunks->next = cnode;
-	}
-
-	return chunk;
+	FFXSHADER * shader = ( FFXSHADER* ) data;
+	if ( shader->blob )
+		FFX_destroyBlob ( shader->blob );
+	free ( data );
 }
 
-void FFX_removeInputChunk ( FFXCONTAINER * container )
+FFXLANGUAGECHUNK* FFX_addLanguage ( FFXCONTAINER * container, FFXLANGUAGETYPE language )
 {
-	struct __CONTAINER_NODE * chunks = container->top, *lastChunks = NULL;
-
-	while ( chunks != NULL )
-	{
-		switch ( *( ( unsigned char* ) chunks->chunk ) )
-		{
-		case 0:		//< Language Chunk
-			break;
-
-		case 1:		//< Input Elements Chunk
-			if ( lastChunks == NULL || lastChunks == container->top )
-				container->top = container->top->next;
-			else
-			{
-				lastChunks->next = chunks->next;
-			}
-
-			free ( ( ( FFXINPUTCHUNK* ) chunks->chunk )->elements );
-			free ( chunks->chunk );
-			free ( chunks );
-
-			return;
-		}
-
-		lastChunks = chunks;
-		chunks = chunks->next;
-	}
-}
-
-FFXINPUTCHUNK * FFX_getInputChunk ( FFXCONTAINER * container )
-{
-	struct __CONTAINER_NODE * chunks = container->top;
-
-	while ( chunks != NULL )
-	{
-		switch ( *( ( unsigned char* ) chunks->chunk ) )
-		{
-		case 0:		//< Language Chunk
-			break;
-
-		case 1:		//< Input Elements Chunk
-			return ( FFXINPUTCHUNK* ) chunks->chunk;
-		}
-
-		chunks = chunks->next;
-	}
-
-	return NULL;
-}
-
-FFXINPUTELEMENT * FFX_getInputChunkData ( FFXINPUTCHUNK * chunk )
-{
-	return chunk->elements;
-}
-
-bool FFX_isContainedLanguage ( FFXCONTAINER * container, FFXLANGUAGE language )
-{
-	struct __CONTAINER_NODE * chunks = container->top;
-	FFXLANGUAGECHUNK * chunk;
-
-	while ( chunks != NULL )
-	{
-		switch ( *( ( unsigned char* ) chunks->chunk ) )
-		{
-		case 0:		//< Language Chunk
-			chunk = ( FFXLANGUAGECHUNK* ) chunks->chunk;
-			if ( strcmp ( chunk->language, language ) == 0 )
-				return true;
-			break;
-
-		case 1:		//< Input Elements Chunk
-			break;
-		}
-
-		chunks = chunks->next;
-	}
-
-	return false;
-}
-
-FFXLANGUAGECHUNK* FFX_addLanguage ( FFXCONTAINER * container, FFXLANGUAGE language )
-{
-	struct __CONTAINER_NODE * chunks = container->top, * cnode;
 	FFXLANGUAGECHUNK * chunk;
 
 	if ( FFX_isContainedLanguage ( container, language ) ) return NULL;
 
 	chunk = ( FFXLANGUAGECHUNK* ) malloc ( sizeof ( FFXLANGUAGECHUNK ) );
-	chunk->chunkType = 0;
 	chunk->language = language;
-	chunk->top = NULL;
+	chunk->linkedList = createLinkedList ( ___languageDelete );
 
-	cnode = ( struct __CONTAINER_NODE* ) malloc ( sizeof ( struct __CONTAINER_NODE ) );
-	cnode->chunk = chunk;
-	cnode->next = NULL;
-
-	if ( chunks == NULL )
-	{
-		container->top = cnode;
-	}
-	else
-	{
-		while ( chunks->next != NULL )
-			chunks = chunks->next;
-		chunks->next = cnode;
-	}
+	addLinkedListNode ( container->linkedList, chunk );
 
 	return chunk;
 }
 
-void FFX_removeLanguage ( FFXCONTAINER * container, FFXLANGUAGE language )
+void FFX_removeLanguage ( FFXCONTAINER * container, FFXLANGUAGETYPE language )
 {
-	struct __CONTAINER_NODE * chunks = container->top, * lastChunks = NULL;
-	FFXLANGUAGECHUNK * chunk;
-
-	while ( chunks != NULL )
+	size_t size = getLinkedListSize ( container->linkedList );
+	for ( unsigned i = 0; i < size; ++i )
 	{
-		switch ( *( ( unsigned char* ) chunks->chunk ) )
+		FFXLANGUAGECHUNK * chunk = ( FFXLANGUAGECHUNK* ) getLinkedListData ( container->linkedList, i );
+		if ( strcmp ( chunk->language, language ) == 0 )
 		{
-		case 0:		//< Language Chunk
-			chunk = ( FFXLANGUAGECHUNK* ) chunks->chunk;
-			if ( strcmp ( chunk->language, language ) == 0 )
-			{
-				if ( lastChunks == NULL || lastChunks == container->top )
-					container->top = container->top->next;
-				else
-				{
-					lastChunks->next = chunks->next;
-				}
-
-				free ( chunk );
-				free ( chunks );
-
-				return;
-			}
-			break;
-
-		case 1:		//< Input Elements Chunk
-			break;
+			removeLinkedListNode ( container->linkedList, i );
+			return;
 		}
-
-		lastChunks = chunks;
-		chunks = chunks->next;
 	}
 }
 
-FFXLANGUAGECHUNK * FFX_getLanguage ( FFXCONTAINER * container, FFXLANGUAGE language )
+FFXLANGUAGECHUNK * FFX_getLanguage ( FFXCONTAINER * container, FFXLANGUAGETYPE language )
 {
-	struct __CONTAINER_NODE * chunks = container->top;
-	FFXLANGUAGECHUNK * chunk;
-
-	while ( chunks != NULL )
+	size_t size = getLinkedListSize ( container->linkedList );
+	for ( unsigned i = 0; i < size; ++i )
 	{
-		switch ( *( ( unsigned char* ) chunks->chunk ) )
-		{
-		case 0:		//< Language Chunk
-			chunk = ( FFXLANGUAGECHUNK* ) chunks->chunk;
-			if ( strcmp ( chunk->language, language ) == 0 )
-				return chunk;
-			break;
-
-		case 1:		//< Input Elements Chunk
-			break;
-		}
-
-		chunks = chunks->next;
+		FFXLANGUAGECHUNK * chunk = ( FFXLANGUAGECHUNK* ) getLinkedListData ( container->linkedList, i );
+		if ( strcmp ( chunk->language, language ) == 0 )
+			return getLinkedListData(container->linkedList, i );
 	}
 
 	return NULL;
 }
 
-unsigned int FFX_getLanguageShaderCount ( FFXLANGUAGECHUNK * language )
+FFXLANGUAGECHUNK * FFX_getLanguageByIndex ( FFXCONTAINER * container, int index )
 {
-	struct __LANGUAGE_NODE * shaders = language->top;
-	unsigned int count = 0;
-
-	while ( shaders != NULL )
-	{
-		++count;
-		shaders = shaders->next;
-	}
-
-	return count;
-
-	return 0;
+	return ( FFXLANGUAGECHUNK* ) getLinkedListData ( container->linkedList, index );
 }
+
+size_t FFX_getLanguageShaderCount ( FFXLANGUAGECHUNK * language )
+{
+	if ( language == NULL ) return 0;
+	return getLinkedListSize ( language->linkedList );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool FFX_isContainedShader ( FFXLANGUAGECHUNK * chunk, FFXSHADERTYPE shaderType )
 {
-	struct __LANGUAGE_NODE * shaders = chunk->top;
-
-	while ( shaders != NULL )
+	size_t size = getLinkedListSize ( chunk->linkedList );
+	for ( unsigned i = 0; i < size; ++i )
 	{
-		if ( shaders->shader->shaderType == shaderType )
+		FFXSHADER * shader = ( FFXSHADER* ) getLinkedListData ( chunk->linkedList, i );
+		if ( shader->shaderType == shaderType )
 			return true;
-
-		shaders = shaders->next;
 	}
-
 	return false;
 }
 
 FFXSHADER* FFX_addShader ( FFXLANGUAGECHUNK * chunk, FFXSHADERTYPE shaderType )
 {
-	struct __LANGUAGE_NODE * shaders = chunk->top, * cnode;
 	FFXSHADER * shader;
+
 	if ( FFX_isContainedShader ( chunk, shaderType ) ) return NULL;
 
 	shader = ( FFXSHADER* ) malloc ( sizeof ( FFXSHADER ) );
-	shader->data = NULL;
-	shader->dataSize = 0;
+	shader->blob = NULL;
 	shader->shaderType = shaderType;
 
-	cnode = ( struct __LANGUAGE_NODE* ) malloc ( sizeof ( struct __LANGUAGE_NODE ) );
-	cnode->shader = shader;
-	cnode->next = NULL;
-
-	if ( shaders == NULL )
-	{
-		chunk->top = cnode;
-	}
-	else
-	{
-		while ( shaders->next != NULL )
-			shaders = shaders->next;
-		shaders->next = cnode;
-	}
+	addLinkedListNode ( chunk->linkedList, shader );
 
 	return shader;
 }
 
 void FFX_removeShader ( FFXLANGUAGECHUNK * chunk, FFXSHADERTYPE shaderType )
 {
-	struct __LANGUAGE_NODE * shaders = chunk->top, *lastShaders = NULL;
-	FFXSHADER * shader;
-
-	while ( shaders != NULL )
+	size_t size = getLinkedListSize ( chunk->linkedList );
+	for ( unsigned i = 0; i < size; ++i )
 	{
-		shader = shaders->shader;
+		FFXSHADER * shader = ( FFXSHADER* ) getLinkedListData ( chunk->linkedList, i );
 		if ( shader->shaderType == shaderType )
 		{
-			if ( lastShaders == NULL || lastShaders == chunk->top )
-				chunk->top = chunk->top->next;
-			else
-			{
-				lastShaders->next = shaders->next;
-			}
-
-			free ( shader );
-			free ( shaders );
-
+			removeLinkedListNode ( chunk->linkedList, i );
 			return;
 		}
-
-		lastShaders = shaders;
-		shaders = shaders->next;
 	}
 }
 
 FFXSHADER * FFX_getShader ( FFXLANGUAGECHUNK * chunk, FFXSHADERTYPE shaderType )
 {
-	struct __LANGUAGE_NODE * shaders = chunk->top;
-
-	while ( shaders != NULL )
+	size_t size = getLinkedListSize ( chunk->linkedList );
+	for ( unsigned i = 0; i < size; ++i )
 	{
-		if ( shaders->shader->shaderType == shaderType )
-			return shaders->shader;
-
-		shaders = shaders->next;
+		FFXSHADER * shader = ( FFXSHADER* ) getLinkedListData ( chunk->linkedList, i );
+		if ( shader->shaderType == shaderType )
+			return shader;
 	}
-
 	return NULL;
 }
 
-void FFX_setShaderData ( FFXSHADER * shader, void * data, size_t dataSize )
+FFXSHADER * FFX_getShaderByIndex ( FFXLANGUAGECHUNK * chunk, int index )
 {
-	if ( shader == NULL ) return;
-
-	shader->data = malloc ( dataSize );
-	shader->dataSize = dataSize;
-
-	memcpy ( shader->data, data, dataSize );
+	return ( FFXSHADER* ) getLinkedListData ( chunk->linkedList, index );
 }
 
-void FFX_getShaderData ( FFXSHADER * shader, void ** data, size_t * dataSize )
+void FFX_setShaderData ( FFXSHADER * shader, FFXBLOB * blob )
 {
 	if ( shader == NULL ) return;
+	if ( shader->blob != NULL ) FFX_destroyBlob ( shader->blob );
+	shader->blob = blob;
+}
 
-	*data = shader->data;
-	*dataSize = shader->dataSize;
+FFXBLOB* FFX_getShaderData ( FFXSHADER * shader )
+{
+	if ( shader == NULL ) return NULL;
+	return shader->blob;
 }
 
 FFXCONTAINER * FFX_loadContainer ( FILE * fp )
@@ -475,38 +250,28 @@ FFXCONTAINER * FFX_loadContainer ( FILE * fp )
 	FFXSHADER * shader;
 
 	fread ( signatureBuffer, 8, 1, fp );
-	if ( strcmp ( "FatFX200", signatureBuffer ) == 0 )
+	if ( strcmp ( "FatFX250", signatureBuffer ) == 0 )
 	{
 		fread ( &languageCount, 4, 1, fp );
 		for ( i = 0; i < languageCount; ++i )
 		{
 			fread ( signatureBuffer, 8, 1, fp );
 
-			if ( strcmp ( signatureBuffer, "ISGN" ) == 0 )
+			language = FFX_addLanguage ( container, signatureBuffer );
+
+			fread ( &shaderCount, 4, 1, fp );
+			for ( j = 0; j < shaderCount; ++j )
 			{
-				fread ( &j, 4, 1, fp );
-				FFXINPUTELEMENT * elements = ( FFXINPUTELEMENT* ) malloc ( j );
-				fread ( elements, j, 1, fp );
-				FFX_addInputChunk ( container, elements );
-				free ( elements );
-			}
-			else
-			{
-				language = FFX_addLanguage ( container, signatureBuffer );
+				fread ( &shaderType, 4, 1, fp );
+				shader = FFX_addShader ( language, ( FFXSHADERTYPE ) shaderType );
 
-				fread ( &shaderCount, 4, 1, fp );
-				for ( j = 0; j < shaderCount; ++j )
-				{
-					fread ( &shaderType, 4, 1, fp );
-					shader = FFX_addShader ( language, ( FFXSHADERTYPE ) shaderType );
+				fread ( &dataSize, 4, 1, fp );
+				data = malloc ( dataSize );
+				fread ( data, dataSize, 1, fp );
 
-					fread ( &dataSize, 4, 1, fp );
-					data = malloc ( dataSize );
-					fread ( data, dataSize, 1, fp );
-					FFX_setShaderData ( shader, data, dataSize );
+				FFX_setShaderData ( shader, FFX_createBlob ( data, dataSize ) );
 
-					free ( data );
-				}
+				free ( data );
 			}
 		}
 	}
@@ -521,73 +286,37 @@ FFXCONTAINER * FFX_loadContainer ( FILE * fp )
 
 void FFX_saveContainer ( FFXCONTAINER * container, FILE * fp )
 {
-	FFXINPUTELEMENT * elements;
 	unsigned int chunkCount, elementCount = 0, shaderCount = 0;
-	FFXLANGUAGE languages [] =
-	{
-		FFXLANGUAGE_HLSL_STYLE_D3D9,
-		FFXLANGUAGE_HLSL_STYLE_D3D1X,
-		FFXLANGUAGE_DXIL,
-		FFXLANGUAGE_GLSL_1_2,
-		FFXLANGUAGE_GLSL_3_3,
-		FFXLANGUAGE_GLSL_4_4,
-		FFXLANGUAGE_GLSLES_1_0,
-		FFXLANGUAGE_GLSLES_3_0,
-		FFXLANGUAGE_GLSLES_3_1,
-		FFXLANGUAGE_METAL,
-	};
 	FFXLANGUAGECHUNK * language;
-	FFXSHADERTYPE shaderTypes [] =
-	{
-		FFXSHADERTYPE_VERTEXSHADER,
-		FFXSHADERTYPE_PIXELSHADER,
-		FFXSHADERTYPE_GEOMETRYSHADER,
-		FFXSHADERTYPE_HULLSHADER,
-		FFXSHADERTYPE_DOMAINSHADER,
-		FFXSHADERTYPE_COMPUTESHADER,
-	};
+	FFXSHADER * shader;
+	FFXBLOB * blob;
 	unsigned int i, j;
 	void * data;
-	size_t dataSize;
+	unsigned int dataSize;
 
-	fwrite ( "FatFX200", 8, 1, fp );
+	fwrite ( "FatFX250", 8, 1, fp );
 
-	chunkCount = FFX_getContainerChunkCount ( container );
+	chunkCount = ( unsigned int ) FFX_getContainerChunkCount ( container );
 	fwrite ( &chunkCount, 4, 1, fp );
 
-	if ( FFX_isContainedInputChunk ( container ) )
+	for ( i = 0; i < chunkCount; ++i )
 	{
-		fwrite ( "ISGN\0\0\0\0", 8, 1, fp );
-		FFXINPUTELEMENT * temp = elements = FFX_getInputChunkData ( FFX_getInputChunk ( container ) );
+		language = FFX_getLanguageByIndex ( container, i );
 
-		while ( temp != NULL )
+		fwrite ( language->language, 8, 1, fp );
+		shaderCount = ( unsigned int ) FFX_getLanguageShaderCount ( language );
+		fwrite ( &shaderCount, 4, 1, fp );
+
+		for ( j = 0; j < shaderCount; ++j )
 		{
-			++elementCount;
-			++temp;
-			if ( temp->semantic [ 0 ] == '\0' ) break;
-		}
-		elementCount *= sizeof ( FFXINPUTELEMENT );
-
-		fwrite ( &elementCount, 4, 1, fp );
-		fwrite ( elements, elementCount, 1, fp );
-	}
-
-	for ( i = 0; i < _countof ( languages ); ++i )
-	{
-		if ( FFX_isContainedLanguage ( container, languages [ i ] ) )
-		{
-			fwrite ( languages [ i ], 8, 1, fp );
-			language = FFX_getLanguage ( container, languages [ i ] );
-			shaderCount = FFX_getLanguageShaderCount ( language );
-			fwrite ( &shaderCount, 4, 1, fp );
-
-			for ( j = 0; j < _countof ( shaderTypes ); ++j )
-			{
-				fwrite ( &shaderTypes [ j ], 4, 1, fp );
-				FFX_getShaderData ( FFX_getShader ( language, shaderTypes [ j ] ), &data, &dataSize );
-				fwrite ( &dataSize, 4, 1, fp );
-				fwrite ( data, dataSize, 1, fp );
-			}
+			shader = FFX_getShaderByIndex ( language, j );
+			fwrite ( &shader->shaderType, 4, 1, fp );
+			blob = FFX_getShaderData ( shader );
+			
+			dataSize = ( unsigned int ) FFX_getDataSize ( blob );
+			fwrite ( &dataSize, 4, 1, fp );
+			data = FFX_getDataPointer ( blob );
+			fwrite ( data, dataSize, 1, fp );
 		}
 	}
 }

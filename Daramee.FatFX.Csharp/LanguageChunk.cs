@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Daramee.FatFX
 {
-	public class LanguageChunk : IChunk
+	public class LanguageChunk
 	{
 		public string Language { get; set; }
 		public Dictionary<ShaderType, Shader> Shaders { get; private set; }

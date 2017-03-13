@@ -3,6 +3,24 @@
   <PropertyGroup>
     <TargetFramework>netstandard1.6</TargetFramework>
     <RootNamespace>Daramee.FatFX</RootNamespace>
+    <PackageId>FatFX for C#</PackageId>
+    <Version>2.5.0</Version>
+    <Authors>Daramee</Authors>
+    <Company>DARAM WORLD</Company>
+    <Description>Shader Fat Binary Load and Save Utility Library</Description>
+    <Copyright>Copyright (C) 2017 Daramee&lt;Jin Jae-yeon&gt;.</Copyright>
+    <AssemblyVersion>2.5.0.0</AssemblyVersion>
+    <FileVersion>2.5.0.0</FileVersion>
+    <AssemblyName>Daramee.FatFX.DotNET</AssemblyName>
+    <Product>FatFX Library for .NET</Product>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\Build\AnyCPU</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\Build\AnyCPU</OutputPath>
   </PropertyGroup>
 
 </Project>

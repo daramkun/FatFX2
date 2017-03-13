@@ -23,17 +23,17 @@ const char * getShaderTypeText ( FFXSHADERTYPE shaderType )
 	}
 }
 
-FFXLANGUAGE getLanguage ( GLLang lang )
+FFXLANGUAGETYPE getLanguage ( GLLang lang )
 {
 	switch ( lang )
 	{
-	case LANG_120:											return FFXLANGUAGE_GLSL_1_2;
-	case LANG_330:											return FFXLANGUAGE_GLSL_3_3;
-	case LANG_440:											return FFXLANGUAGE_GLSL_4_4;
-	case LANG_ES_100:										return FFXLANGUAGE_GLSLES_1_0;
-	case LANG_ES_300:										return FFXLANGUAGE_GLSLES_3_0;
-	case LANG_ES_310:										return FFXLANGUAGE_GLSLES_3_1;
-	case LANG_METAL:										return FFXLANGUAGE_METAL;
+	case LANG_120:											return FFXLANGUAGETYPE_GLSL_1_2;
+	case LANG_330:											return FFXLANGUAGETYPE_GLSL_3_3;
+	case LANG_440:											return FFXLANGUAGETYPE_GLSL_4_4;
+	case LANG_ES_100:										return FFXLANGUAGETYPE_GLSLES_1_0;
+	case LANG_ES_300:										return FFXLANGUAGETYPE_GLSLES_3_0;
+	case LANG_ES_310:										return FFXLANGUAGETYPE_GLSLES_3_1;
+	case LANG_METAL:										return FFXLANGUAGETYPE_METAL;
 	default:												return "\0\0\0\0\0\0\0\0";
 	}
 }
@@ -71,25 +71,57 @@ ID3DBlob * getFileContent ( const char * filename )
 	return blob;
 }
 
-void addShaderData ( FFXCONTAINER * container, FFXLANGUAGE language, FFXSHADERTYPE shaderType, void * data, size_t dataSize )
+FFXLANGUAGECHUNK* getLanguageChunk ( FFXCONTAINER * container, FFXLANGUAGETYPE language )
 {
-	FFXLANGUAGECHUNK * languageChunk = FFX_isContainedLanguage ( container, language ) ?
+	return FFX_isContainedLanguage ( container, language ) ?
 		FFX_getLanguage ( container, language ) :
 		FFX_addLanguage ( container, language );
-	FFXSHADER * shader = FFX_isContainedShader ( languageChunk, shaderType ) ?
-		FFX_getShader ( languageChunk, shaderType ) :
-		FFX_addShader ( languageChunk, shaderType );
-	FFX_setShaderData ( shader, data, dataSize );
 }
 
-void addShaderData ( FFXCONTAINER * container, FFXLANGUAGE language, FFXSHADERTYPE shaderType, ID3DBlob * blob )
+FFXSHADER* getShaderBlock ( FFXLANGUAGECHUNK * chunk, FFXSHADERTYPE shaderType )
+{
+	return FFX_isContainedShader ( chunk, shaderType ) ?
+		FFX_getShader ( chunk, shaderType ) :
+		FFX_addShader ( chunk, shaderType );
+}
+
+void addShaderData ( FFXCONTAINER * container, FFXLANGUAGETYPE language, FFXSHADERTYPE shaderType, void * data, size_t dataSize )
+{
+	FFXLANGUAGECHUNK * languageChunk = getLanguageChunk(container, language );
+	FFXSHADER * shader = getShaderBlock ( languageChunk, shaderType );
+	FFX_setShaderData ( shader, FFX_createBlob ( data, dataSize ) );
+}
+
+void addShaderData ( FFXCONTAINER * container, FFXLANGUAGETYPE language, FFXSHADERTYPE shaderType, ID3DBlob * blob )
 {
 	addShaderData ( container, language, shaderType, blob->GetBufferPointer (), blob->GetBufferSize () );
 }
 
+FFXINOUTELEMENT* getElements ( GLSLShader & result, bool isInputSignature )
+{
+	ShaderInfo shaderInfo = result.reflection;
+	auto is = isInputSignature ? shaderInfo.psInputSignatures : shaderInfo.psOutputSignatures;
+	FFXINOUTELEMENT * elements = new FFXINOUTELEMENT [ is.size () + 1 ];
+	for ( unsigned i = 0; i < is.size (); ++i )
+	{
+		auto p = is [ i ];
+		memset ( elements [ i ].semantic, 0, 32 );
+		strcpy ( elements [ i ].semantic, p.semanticName.c_str () );
+		elements [ i ].index = p.ui32SemanticIndex;
+		elements [ i ].elementType = p.eComponentType == 1 ? FFXELEMENTTYPE_UINT : ( p.eComponentType == 2 ? FFXELEMENTTYPE_INT : FFXELEMENTTYPE_FLOAT );
+		elements [ i ].count = getBitcount ( p.ui32Mask );
+	}
+	memset ( elements [ is.size () ].semantic, 0, 32 );
+	elements [ is.size () ].count = 0;
+	elements [ is.size () ].index = 0;
+	elements [ is.size () ].elementType = 0;
+
+	return elements;
+}
+
 void translateTo ( FFXCONTAINER * container, FFXSHADERTYPE shaderType, void * data, size_t dataSize, bool optimizationOption )
 {
-	addShaderData ( container, FFXLANGUAGE_DXIL, shaderType, data, dataSize );
+	addShaderData ( container, FFXLANGUAGETYPE_DXIL_STYLE_D3D1X, shaderType, data, dataSize );
 
 	GLSLShader result;
 	HLSLccSamplerPrecisionInfo samplerPrecisions;
@@ -113,25 +145,21 @@ void translateTo ( FFXCONTAINER * container, FFXSHADERTYPE shaderType, void * da
 		}
 		addShaderData ( container, getLanguage ( lang ), shaderType, ( void * ) result.sourceCode.c_str (), result.sourceCode.length () );
 
-		if ( !FFX_isContainedInputChunk ( container ) && ( shaderType == FFXSHADERTYPE_VERTEXSHADER ) )
+		FFXLANGUAGECHUNK * inLang = getLanguageChunk ( container, FFXLANGUAGETYPE_NOLANGUAGE_INPUT );
+		if ( !FFX_getShader ( inLang, shaderType ) )
 		{
-			ShaderInfo shaderInfo = result.reflection;
-			auto is = shaderInfo.psInputSignatures;
-			FFXINPUTELEMENT * elements = new FFXINPUTELEMENT [ is.size () + 1 ];
-			for ( unsigned i = 0; i < is.size (); ++i )
-			{
-				auto p = is [ i ];
-				memset ( elements [ i ].semantic, 0, 32 );
-				strcpy ( elements [ i ].semantic, p.semanticName.c_str () );
-				elements [ i ].index = p.ui32SemanticIndex;
-				elements [ i ].elementType = p.eComponentType == 1 ? FFXELEMENTTYPE_UINT : ( p.eComponentType == 2 ? FFXELEMENTTYPE_INT : FFXELEMENTTYPE_FLOAT );
-				elements [ i ].count = getBitcount ( p.ui32Mask );
-			}
-			memset ( elements [ is.size () ].semantic, 0, 32 );
-			elements [ is.size () ].count = 0;
-			elements [ is.size () ].index = 0;
-			elements [ is.size () ].elementType = 0;
-			FFX_addInputChunk ( container, elements );
+			FFXSHADER * inShader = FFX_addShader ( inLang, shaderType );
+			FFXINOUTELEMENT * elements = getElements ( result, true );
+			FFX_setShaderData ( inShader, FFX_createBlobByInOutElement ( elements ) );
+			delete [] elements;
+		}
+
+		FFXLANGUAGECHUNK * outLang = getLanguageChunk ( container, FFXLANGUAGETYPE_NOLANGUAGE_OUTPUT );
+		if ( !FFX_getShader ( outLang, shaderType ) )
+		{
+			FFXSHADER * outShader = FFX_addShader ( outLang, shaderType );
+			FFXINOUTELEMENT * elements = getElements ( result, false );
+			FFX_setShaderData ( outShader, FFX_createBlobByInOutElement ( elements ) );
 			delete [] elements;
 		}
 	}
@@ -139,7 +167,7 @@ void translateTo ( FFXCONTAINER * container, FFXSHADERTYPE shaderType, void * da
 
 int main ( int argc, char * argv [] )
 {
-	printf ( "=========== FatFX v2.00 ===========\n" );
+	printf ( "=========== FatFX v2.50 ===========\n" );
 	printf ( "* Created by Daramee<daramkun@live.com>\n" );
 	printf ( "* Thanks to Unity-Technologies/HLSLcc  d8176fd55ad66f82ece978039135d77965ae544e\n" );
 
@@ -191,7 +219,7 @@ int main ( int argc, char * argv [] )
 					printErrorMessage ( errMsg, FFXSHADERTYPE_VERTEXSHADER );
 					break;
 				}
-				addShaderData ( container, FFXLANGUAGE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_VERTEXSHADER, getFileContent ( argv [ 1 + i ] ) );
+				addShaderData ( container, FFXLANGUAGETYPE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_VERTEXSHADER, getFileContent ( argv [ 1 + i ] ) );
 				translateTo ( container, FFXSHADERTYPE_VERTEXSHADER, code->GetBufferPointer (), code->GetBufferSize (), optimizationOption );
 			}
 			break;
@@ -206,7 +234,7 @@ int main ( int argc, char * argv [] )
 					break;
 				}
 				
-				addShaderData ( container, FFXLANGUAGE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_PIXELSHADER, getFileContent ( argv [ 1 + i ] ) );
+				addShaderData ( container, FFXLANGUAGETYPE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_PIXELSHADER, getFileContent ( argv [ 1 + i ] ) );
 				translateTo ( container, FFXSHADERTYPE_PIXELSHADER, code->GetBufferPointer (), code->GetBufferSize (), optimizationOption );
 			}
 			break;
@@ -221,7 +249,7 @@ int main ( int argc, char * argv [] )
 					break;
 				}
 				
-				addShaderData ( container, FFXLANGUAGE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_GEOMETRYSHADER, getFileContent ( argv [ 1 + i ] ) );
+				addShaderData ( container, FFXLANGUAGETYPE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_GEOMETRYSHADER, getFileContent ( argv [ 1 + i ] ) );
 				translateTo ( container, FFXSHADERTYPE_GEOMETRYSHADER, code->GetBufferPointer (), code->GetBufferSize (), optimizationOption );
 			}
 			break;
@@ -236,7 +264,7 @@ int main ( int argc, char * argv [] )
 					break;
 				}
 				
-				addShaderData ( container, FFXLANGUAGE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_HULLSHADER, getFileContent ( argv [ 1 + i ] ) );
+				addShaderData ( container, FFXLANGUAGETYPE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_HULLSHADER, getFileContent ( argv [ 1 + i ] ) );
 				translateTo ( container, FFXSHADERTYPE_HULLSHADER, code->GetBufferPointer (), code->GetBufferSize (), optimizationOption );
 			}
 			break;
@@ -251,7 +279,7 @@ int main ( int argc, char * argv [] )
 					break;
 				}
 				
-				addShaderData ( container, FFXLANGUAGE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_DOMAINSHADER, getFileContent ( argv [ 1 + i ] ) );
+				addShaderData ( container, FFXLANGUAGETYPE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_DOMAINSHADER, getFileContent ( argv [ 1 + i ] ) );
 				translateTo ( container, FFXSHADERTYPE_DOMAINSHADER, code->GetBufferPointer (), code->GetBufferSize (), optimizationOption );
 			}
 			break;
@@ -266,7 +294,7 @@ int main ( int argc, char * argv [] )
 					break;
 				}
 				
-				addShaderData ( container, FFXLANGUAGE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_COMPUTESHADER, getFileContent ( argv [ 1 + i ] ) );
+				addShaderData ( container, FFXLANGUAGETYPE_HLSL_STYLE_D3D1X, FFXSHADERTYPE_COMPUTESHADER, getFileContent ( argv [ 1 + i ] ) );
 				translateTo ( container, FFXSHADERTYPE_COMPUTESHADER, code->GetBufferPointer (), code->GetBufferSize (), optimizationOption );
 			}
 			break;
